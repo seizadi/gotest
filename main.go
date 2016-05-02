@@ -1,18 +1,37 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 
 func main() {
 
 	c := make(chan int)
 	e := make(chan bool)
+	var wg sync.WaitGroup
+
+	wg.Add(2)
 	// Producer
 	go func() {
-		defer close(c)
 		for i := 0; i < 10; i++ {
 			c <- i
 		}
+		wg.Done()
+	}()
+
+	go func() {
+		for i := 0; i < 10; i++ {
+			c <- i
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		wg.Wait()
+		close(c)
+		e <- true
 	}()
 
 	// Consumer
@@ -20,8 +39,11 @@ func main() {
 		for i:= range c {
 			fmt.Println(i)
 		}
-		e <- true
 	}()
 
-	<-e
+
+
+	<- e
+	// Sometimes program closes and last character is not printed
+	// time.Sleep(time.Second) will show the character
 }
